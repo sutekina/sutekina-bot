@@ -1,0 +1,27 @@
+{
+    "application": {
+        "name": "sutekina-bot",
+        "version": "1.0.0",
+        "prefix": ">",
+        "invite": {
+            "client_id": "839965833082306640",
+            "permissions": "8"
+        }
+    },
+    "guild": {
+        "guild_id": "804091831595696128",
+        "invite": {
+            "code": "xRCMXJ7JPh"
+        }
+    },
+    "mysql": {
+        "user": "user",
+        "host": "localhost",
+        "password": "password",
+        "port": "3306",
+        "database": "osu"
+    },
+    "authentication": {
+        "discord": "DISCORD-TOKEN"
+    }
+}
