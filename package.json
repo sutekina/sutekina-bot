@@ -1,0 +1,40 @@
+{
+  "name": "sutekina-bot",
+  "version": "1.0.0",
+  "description": "sutekina.tk bot",
+  "main": "index.js",
+  "dependencies": {
+    "abort-controller": "^3.0.0",
+    "asynckit": "^0.4.0",
+    "combined-stream": "^1.0.8",
+    "delayed-stream": "^1.0.0",
+    "discord.js": "^12.5.3",
+    "event-target-shim": "^5.0.1",
+    "mime-db": "^1.47.0",
+    "mime-types": "^2.1.30",
+    "mysql2": "^2.2.5",
+    "node-fetch": "^2.6.1",
+    "ojsama": "^2.2.0",
+    "prism-media": "^1.2.9",
+    "setimmediate": "^1.0.5",
+    "tweetnacl": "^1.0.3",
+    "ws": "^7.4.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"meow\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sutekina/sutekina-bot.git"
+  },
+  "keywords": [
+    "sutekina"
+  ],
+  "author": "sutekina",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sutekina/sutekina-bot/issues"
+  },
+  "homepage": "https://github.com/sutekina/sutekina-bot#readme"
+}
