@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 const path = require("path");
 const initModules = require("./initModules");
+const connectDB = require("./connectDB");
 
 class SutekinaClient extends Discord.Client {
     /**
@@ -9,9 +10,10 @@ class SutekinaClient extends Discord.Client {
     constructor(options = {}) {
         super(options);
 
-        this.modules["handler"].eventsHandler(this);
+        connectDB(this);
 
-        this.commands = this.modules["handler"].commandsCollection(this.modules);
+        this.modules["handler"].eventsHandler(this);
+        [this.commands, this.commandCategories] = this.modules["handler"].commandsCollection(this.modules);
     }
 
     get config() {

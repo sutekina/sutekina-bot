@@ -1,16 +1,17 @@
 const pkg = require("../../package.json");
 
 /**
- * @param {SutekinaClient} Client - SutekinaClient class.
+ * @param {SutekinaClient} client - SutekinaClient class.
  */
-module.exports = (Client) => {
+module.exports = (client) => {
     const modules = {};
 
     Object.keys(pkg.dependencies).map(dependency => {
         modules[dependency] = require(dependency);
     });
     
-    modules["logging"] = require("../util/logging")(modules, Client.config);
+    modules["logging"] = require("../util/logging")(modules, client.config);
     modules["handler"] = require("../util/handler");
+    modules["time"] = require("../util/time");
     return modules;
 }
