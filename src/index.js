@@ -4,6 +4,7 @@ SutekinaClient = new SutekinaClient({
     messageCacheLifetime: 3600,
     messageSweepInterval: 60,
     messageEditHistoryMaxSize: 200,
+    disableMentions: "everyone",
     presence: {
         status: "idle",
         activity: {
@@ -13,7 +14,9 @@ SutekinaClient = new SutekinaClient({
     }
 });
 
-const config = SutekinaClient.config;
+module.exports = SutekinaClient;
 
-SutekinaClient.login(config.authentication.discord).then(() => console.log(`${config.application.name}@${config.application.version} is running, the prefix is ${config.application.prefix}.`)).catch(err => console.log(err))
-
+SutekinaClient.login(SutekinaClient.config.authentication.discord).catch(err => {
+    SutekinaClient.modules.logging.fatal(err.message, err);
+    setTimeout(() => SutekinaClient.close(), 300);
+});

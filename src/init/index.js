@@ -1,18 +1,17 @@
+const Discord = require("discord.js");
 const path = require("path");
-
-
-const DiscordClient = require("discord.js").Client;
 const initModules = require("./initModules");
 
-new DiscordClient()
-
-class SutekinaClient extends DiscordClient {
+class SutekinaClient extends Discord.Client {
     /**
      * @param {ClientOptions} options - the options for the DiscordClient
      */
     constructor(options = {}) {
-        super(options)
-        this.modules = initModules(this);
+        super(options);
+
+        this.modules["handler"].eventsHandler(this);
+
+        this.commands = this.modules["handler"].commandsCollection(this.modules);
     }
 
     get config() {
@@ -22,6 +21,19 @@ class SutekinaClient extends DiscordClient {
         } catch(err) {
             throw new Error(`Couldn't require ${config_path}, either create from sample or check for permissions.`)
         }
+    }
+    
+    get modules() {
+        try {
+            return initModules(this);
+        } catch(err) {
+            throw err;
+        }
+    }
+
+    close() {
+        this.destroy();
+        process.exit();
     }
 };
 

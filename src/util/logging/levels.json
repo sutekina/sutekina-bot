@@ -4,6 +4,5 @@
     "warn": 2,
     "info": 3,
     "debug": 4,
-    "trace": 5,
-    "all": 6
+    "trace": 5
 }
