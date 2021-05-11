@@ -3,6 +3,7 @@
         "name": "sutekina-bot",
         "version": "1.0.0",
         "prefix": ">",
+        "color": "#7765e3",
         "invite": {
             "client_id": "839965833082306640",
             "permissions": "8"
@@ -21,8 +22,13 @@
         "port": "3306",
         "database": "osu"
     },
+    "domains": {
+        "osu": "https://sutekina.tk",
+        "avatar": "https://a.sutekina.tk"
+    },
     "authentication": {
-        "discord": "DISCORD-TOKEN"
+        "discord": "DISCORD-TOKEN",
+        "osu": "OSU-API-TOKEN"
     },
     "debug": {
         "file_level": "trace",

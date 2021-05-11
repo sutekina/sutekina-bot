@@ -9,9 +9,8 @@ class SutekinaClient extends Discord.Client {
      */
     constructor(options = {}) {
         super(options);
-
+        
         connectDB(this);
-
         this.modules["handler"].eventsHandler(this);
         [this.commands, this.commandCategories] = this.modules["handler"].commandsCollection(this.modules);
     }
@@ -26,11 +25,14 @@ class SutekinaClient extends Discord.Client {
     }
     
     get modules() {
-        try {
-            return initModules(this);
-        } catch(err) {
-            throw err;
+        if(!this._modules) {        
+            try {
+                this._modules = initModules(this);
+            } catch(err) {
+                throw err;
+            }
         }
+        return this._modules
     }
 
     close() {

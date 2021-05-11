@@ -1,3 +1,4 @@
 module.exports = {
-    timeAgo: require("./timeAgo")
+    timeAgo: require("./timeAgo"),
+    clock: require("./clock")
 };

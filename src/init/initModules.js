@@ -1,4 +1,5 @@
 const pkg = require("../../package.json");
+const utilHandler = require("../util/index");
 
 /**
  * @param {SutekinaClient} client - SutekinaClient class.
@@ -10,8 +11,8 @@ module.exports = (client) => {
         modules[dependency] = require(dependency);
     });
     
-    modules["logging"] = require("../util/logging")(modules, client.config);
-    modules["handler"] = require("../util/handler");
-    modules["time"] = require("../util/time");
+    utilHandler().map(utilModule => modules[utilModule.name] = utilModule.require)
+
+    modules["logging"] = modules["logging"](modules["winston"], client.config);
     return modules;
 }
