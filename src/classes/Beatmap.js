@@ -1,5 +1,4 @@
 const SutekinaClient = require("../index");
-const https = require("https");
 
 const mods = require("../enum/mods");
 const Score = require("./Score");
@@ -24,7 +23,7 @@ const BeatmapInterface = {
 class Beatmap {
     /**
      * @param {BeatmapInterface} beatmap - Accepts a BeatmapInterface like it is returned from Beatmap.getBeatmap().
-     * @returns {Beatmap} Beatmap object.
+     * @returns {BeatmapInterface} Beatmap object.
      */
     constructor(beatmap) {
         beatmap = SutekinaClient.modules["validation"].interface(beatmap, BeatmapInterface);
@@ -34,34 +33,16 @@ class Beatmap {
     /**
      * @returns ojsama parsed map.
      */
-    get map_file () {
+    get file () {
         return new Promise((resolve, reject) => {
-            if(this._map_file) {
-                resolve(this._map_file)
+            if(this._file) {
+                resolve(this._file)
             } else {
-                let options = {
-                    protocol: "https:",
-                    host: "osu.ppy.sh",
-                    path: `/osu/${this.beatmap_id}`,
-                    port: 443
-                };
-                SutekinaClient.modules["logging"].trace(`preparing request for ${options.host}`,  options);
-                https.get(options, (res) => {                        
-                    SutekinaClient.modules["logging"].trace(`request to ${options.host}`, {...options});
-                    SutekinaClient.modules["logging"].debug(`request to ${options.host}${options.path} // ${res.statusCode} ${res.statusMessage}`)
-                    let data = '';
-                    res.on('data', chunk => {
-                        SutekinaClient.modules["logging"].trace(`received chunk ${options.host}`, {...options})
-                        data += chunk;
-                    });
-        
-                    res.on('close', () => {
-                        SutekinaClient.modules["logging"].trace(`request to ${options.host} closed.`, {data});
-                        const parser = new SutekinaClient.modules["ojsama"].parser().feed(data.toString());
-                        this._map_file = parser.map;
-                        resolve(this._map_file)
-                    });
-                }).on("error", err => reject(err));
+                SutekinaClient.modules["request"].GET(`https://osu.ppy.sh:443/osu/${this.beatmap_id}`).then(data => {
+                    const parser = new SutekinaClient.modules["ojsama"].parser().feed(data.toString());
+                    this._file = parser.map;
+                    resolve(this._file)
+                }).catch(err => reject(err));
             }
         });
     };
@@ -71,7 +52,7 @@ class Beatmap {
      * @returns ojsama star rating, if you want the star rating as number access .total
      */
     async getStarRating (score) {
-        return new SutekinaClient.modules["ojsama"].diff().calc({map: await this.map_file, mods: score.mods});
+        return new SutekinaClient.modules["ojsama"].diff().calc({map: await this.file, mods: score.mods});
     };
     
     /**
@@ -102,37 +83,20 @@ Beatmap.getBeatmap = (md5) => {
             if(!result || !result[0]) reject("NOT_FOUND");
             if(result[0]) {
                 let beatmap = new Beatmap(result[0]);
+                // all of this is just because some maps will have a max_combo / total_length of 0 caused by old code, in theory it's unneccesary if you are running new gulag code.
                 if(beatmap.total_length == 0 || beatmap.max_combo == 0) {
-                    let options = {
-                        protocol: "https:",
-                        host: "osu.ppy.sh",
-                        path: `/api/get_beatmaps?k=${SutekinaClient.config.authentication.osu}&h=${md5}`,
-                        port: 443
-                    };
-                    SutekinaClient.modules["logging"].trace(`preparing request for ${options.host}`,  options);
-                    https.get(options, (res) => {                        
-                        SutekinaClient.modules["logging"].trace(`request to ${options.host}`, {...options});
-                        SutekinaClient.modules["logging"].debug(`request to ${options.host}${options.path.replace(SutekinaClient.config.authentication.osu, "OSU-API-TOKEN")} // ${res.statusCode} ${res.statusMessage}`)
-                        let data = '';
-                        res.on('data', chunk => {
-                            SutekinaClient.modules["logging"].trace(`received chunk ${options.host}`, {...options})
-                            data += chunk;
+                    SutekinaClient.modules["request"].GET(`https://api.chimu.moe:443/cheesegull/md5/${md5}`).then(data => {
+                        data = JSON.parse(data);
+                        beatmap.total_length = parseInt(data.TotalLength);
+                        beatmap.max_combo = parseInt(data.MaxCombo);
+                        query = `UPDATE maps SET total_length = ?, max_combo = ? WHERE md5 = ?;`;
+                        parameters = [beatmap.total_length, beatmap.max_combo, md5];
+                        SutekinaClient.modules["logging"].trace(query, {query, parameters});
+                        SutekinaClient.modules["mysql2"].connection.execute(query, parameters, (err) => {
+                            if(err) reject(err);
+                            if(!err) resolve(beatmap);
                         });
-                        res.on('close', () => {
-                            SutekinaClient.modules["logging"].trace(`request to ${options.host} closed.`, {data});
-                            data = JSON.parse(data);
-                            beatmap.total_length = parseInt(data[0].total_length);
-                            beatmap.max_combo = parseInt(data[0].max_combo);
-
-                            query = `UPDATE maps SET total_length = ?, max_combo = ? WHERE md5 = ?;`;
-                            parameters = [beatmap.total_length, beatmap.max_combo, md5];
-                            SutekinaClient.modules["logging"].trace(query, {query, parameters});
-                            SutekinaClient.modules["mysql2"].connection.execute(query, parameters, (err) => {
-                                if(err) reject(err);
-                                if(!err) resolve(beatmap);
-                            });
-                        });
-                    }).on("error", err => reject(err));
+                    }).catch(err => reject(err))
                 } else resolve(beatmap);
             }
         });

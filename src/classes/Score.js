@@ -50,17 +50,27 @@ class Score {
         return this._mod_list;
     }
     
+    get hits_list () {
+        if(!this._hits) {
+            this._hits = [];
+            
+            this._hits.push(this.hits_300, this.hits_100, this.hits_50, this.hits_miss)
+        } 
+        
+        return this._hits
+    }
+
     /**
      * @param {Beatmap} beatmap - Accepts Beatmap class objects. 
      * @returns {Object} an Object with the fullcombo pp and full combo accuracy.
      */
-    getFCPP (beatmap) {
-        if(beatmap.max_combo == this.max_combo) return undefined;
+    async getFCPP (beatmap) {
+        if(beatmap.max_combo == this.max_combo) return {pp: null, accuracy: null};
 
         let accuracy = Score.getAccuracy({hits_300: this.hits_300, hits_100: this.hits_100, hits_50: this.hits_50 + this.hits_miss, hits_miss: 0});
 
         let pp = (SutekinaClient.modules["ojsama"].ppv2({
-            stars: beatmap.getStarRating(this),
+            stars: await beatmap.getStarRating(this),
             combo: beatmap.max_combo,
             nmiss: 0,
             acc_percent: accuracy
@@ -74,20 +84,25 @@ class Score {
      * @param {Beatmap} beatmap - Accepts Beatmap class objects.
      * @returns {Number} the completion as % number.
      */
-    getCompletion (beatmap) {
-        let completion = (this.time_elapsed / 1000) * 100 / beatmap.total_length;
-        if(completion > 100) completion = 100;
-        return completion;
+    async getCompletion (beatmap) {
+        // this should work but it aint so i aint gon use it LOL :)
+        // let completion = (this.time_elapsed / 1000) * 100 / beatmap.total_length;
+        beatmap = await beatmap.file;
+
+        let total_objects = beatmap.nspinners + beatmap.nsliders + beatmap.ncircles;
+        let hit_objects = this.hits_list.reduce((a, b) => a + b, 0);
+        return total_objects * 100 / hit_objects;
     }
 }
 
 const HitsInterface = {hits_300: Number, hits_100: Number, hits_50: Number, hits_miss: Number}
+
 /**
- * @param {HitsInterface} hits - Accepts an object with hits_300, hits_100, hits_50 and hits_miss. 
+ * @param {HitsInterface} hits_list - Accepts an object with hits_300, hits_100, hits_50 and hits_miss. 
  * @returns {Number} the accuracy as % number.
  */
-Score.getAccuracy = (hits) => {
-    return ((hits.hits_300 * 300 + hits.hits_100 * 100 + hits.hits_50 * 50 + hits.hits_miss * 0)/((hits.hits_300 + hits.hits_100 + hits.hits_50 + hits.hits_miss) * 300) * 100);
+ Score.getAccuracy = (hits_list) => {
+    return ((hits_list.hits_300 * 300 + hits_list.hits_100 * 100 + hits_list.hits_50 * 50 + hits_list.hits_miss * 0)/((hits_list.hits_300 + hits_list.hits_100 + hits_list.hits_50 + hits_list.hits_miss) * 300) * 100);
 };
 
 /** 

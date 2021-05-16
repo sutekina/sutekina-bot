@@ -3,28 +3,78 @@ module.exports = {
     category: "osu",
     description: "Get recent osu play",
     usage: "maybe add later",
-    execute: async (client, message, args) => {
-        // i could use .then and .catch here but considering i have multiple classes that im instantiating i thought a try-catch is preferred to reduce code length even tho it might make it harder to pin down the code.
-        if(!args[0]) return message.channel.send("Please enter a user.");
+    execute: async (client, message) => {
+        if(!message.args[0]) return message.channel.send("Please enter a user.");
+        
+        const enums = require("../../../enum/");
+        let username = message.args.join(" ").toLowerCase().split(" -")[0];
+        let mod = (enums.mods.gameMods.includes(message.params.mod)) ? message.params.mod : "vn";
+        let mode = (enums.mode[message.params.mode]) ? message.params.mode : "std";
+        let index = 1;
         try {
+            let timers = {};
+
             const User = require("../../../classes/User");
             const Score = require("../../../classes/Score");
             const Beatmap = require("../../../classes/Beatmap");
+            timers.user = client.modules["time"].clock();
+            const user = await new User(username, mod, mode);
+            timers.user = client.modules["time"].clock(timers.user);
+            timers.score = client.modules["time"].clock();
+            const score = await Score.getScore({user_id: user.id, ascending: false, mods: mod, mode: mode});
+            timers.score = client.modules["time"].clock(timers.score);
+            timers.beatmap = client.modules["time"].clock();
+            const beatmap = await Beatmap.getBeatmap(score.beatmap_md5);
+            timers.beatmap = client.modules["time"].clock(timers.beatmap);
+            timers.file = client.modules["time"].clock();
+            await beatmap.file;
+            timers.file = client.modules["time"].clock(timers.file);
 
-            let user = await new User(args.join(" ").toLowerCase());
-            let score = await Score.getScore({user_id: user.id, ascending: false});
-            let beatmap = await Beatmap.getBeatmap(score.beatmap_md5);
-            
-            score.completion = score.getCompletion(beatmap);
-
-            message.channel.send(`completion ${score.completion.toFixed(2)}%, event took ${client.modules["time"].clock(client.eventTimer)}ms.`);
+            const embed = new client.modules["discord.js"].MessageEmbed()
+                .setColor(client.config.application.color)
+                .setTitle(`${beatmap.artist} - ${beatmap.title} [${beatmap.difficulty}]`)
+                .setURL(new URL("/b/" + beatmap.beatmap_id, client.config.domains.osu))
+                .addFields({name: `${index}. \`${client.modules["time"].ago.long(score.play_time)}\` (${(await beatmap.getStarRating(score)).total.toFixed(2)}* | ${beatmap.getBPM(score)}bpm)`, value:
+                    `**PP**: ${score.pp.toFixed(2)}pp ` + await (async () => { let {pp, accuracy} = await score.getFCPP(beatmap); string = (pp) ? `=> ${pp.toFixed(2)}pp (with ${accuracy.toFixed(2)}%)` : `Full Combo`; return string; })() + ` (${score.hits_300}/${score.hits_100}/${score.hits_50}/${score.hits_miss})\n` +
+                    `**Accuracy**: ${score.accuracy.toFixed(2)}% (${score.mod_list.map(m => enums.mods.bitwiseEmojis[m]).join("")}, ${enums.grades[score.grade]})\n` +
+                    `**Completion**: ${(await score.getCompletion(beatmap)).toFixed(2)}% (x${score.max_combo}/${beatmap.max_combo})`
+                })
+                .setFooter(`player: ${user.name} // index: ${index} // mod: ${mod} // mode: ${mode}`, new URL(user.id, client.config.domains.avatar))
+                .setThumbnail(new URL(`/thumb/${beatmap.beatmapset_id}.jpg`, client.config.domains.beatmap));
+            message.channel.send(embed);
+            if(message.params.hasOwnProperty("debug")) module.exports.debug(client, message, timers);
         } catch(err) {
-            if(err != "NOT_FOUND") return client.emit("error", err);
-                
-            message.channel.send(`\`\`${args.join(" ").replace("`", "")}\`\` couldn't be found.`);
+            if(!new RegExp(/NOT_FOUND|INVALID_MODE/).test(err)) {
+                message.channel.send("There was an issue trying to retrieve recent plays.");
+                return client.emit("error", err);
+            };
+            
+            message.channel.send(`\`\`${username.replace("`", "")}\`\` couldn't be found. ${err}`);
         }
+
+    },
+    debug: (client, message, timers) => {
+        let timeElapsed = client.modules["time"].clock(client.eventTimer);
+        message.channel.send(new client.modules["discord.js"].MessageEmbed()
+            .setColor(client.config.application.color)
+            .setTitle(`server-side time ${timeElapsed}ms, ws ping: ${client.ws.ping}ms, total est.: ${(parseFloat(timeElapsed) + client.ws.ping).toFixed(2)}ms.`)
+            .setDescription(
+                `user from mysql: \`${timers.user}\`ms\n` +
+                `recent score for user from mysql: \`${timers.score}\`ms\n` +
+                `beatmap from mysql, if not complete get map from cheesegull: \`${timers.beatmap}\`ms\n` +
+                `beatmap file from osu website: \`${timers.file}\`ms` 
+        ));
+        client.modules["logging"].debug(`Finished M@${message.id}, this command created a User, Score and Beatmap and then embedded it. Time took: ${timeElapsed}ms.`, timers);
     }
 }
+
+// BOTTLENECKS:
+// biggest bottleneck for this command at the moment is retrieving the beatmap from osu website, it's also bad because we are reliant on osu, this can take up to 300ms.
+// possible solutions:
+// download beatmap once if we dont already have it and then save it in folder, filestream is most likely quicker than requesting from website.
+// 
+// other bottlenecks:
+// when total_length/max_combo is 0 we request the map from cheesegull, this is a problem because cheesegull is unreliant but since this shouldn't happen too often it's not that serious.
 
 // Score {
 //     score_id: "627",
