@@ -60,6 +60,40 @@ class Score {
         return this._hits
     }
 
+    get beatmap() {
+        return new Promise((resolve, reject) => {
+            if(this._beatmap) resolve(this._beatmap);
+
+            let query = `SELECT server, id beatmap_id, set_id beatmapset_id, status, md5 beatmap_md5, artist, title, version difficulty, creator, last_update, total_length, max_combo, mode, bpm base_bpm FROM osu.maps WHERE md5 = ?;`;
+            let parameters = [this.beatmap_md5];
+            SutekinaClient.modules["logging"].trace(query, {query, parameters})
+            SutekinaClient.modules["mysql2"].connection.execute(query, parameters, (error, result) => {
+                if(error) reject(error);
+                if(!result || !result[0]) reject("NOT_FOUND");
+                if(result[0]) {
+                    this._beatmap = new Beatmap(result[0]);
+                    // all of this is just because some maps will have a max_combo / total_length of 0 caused by old code, in theory it's unneccesary if you are running new gulag code.
+                    if(this._beatmap.total_length != 0 && this._beatmap.max_combo != 0) resolve(this._beatmap);
+                    else SutekinaClient.modules["request"].GET(`https://osu.ppy.sh:443/api/get_beatmaps?k=${SutekinaClient.config.authentication.osu}&h=${this.beatmap_md5}`).then(data => {
+                        data = JSON.parse(data)[0];
+                        // the map isn't on the osu server, deleted? TODO maybe delete score from db?
+                        if(!data) return reject("NOT_FOUND");
+
+                        this._beatmap.total_length = parseInt(data.total_length);
+                        this._beatmap.max_combo = parseInt(data.max_combo);
+                        query = `UPDATE maps SET total_length = ?, max_combo = ? WHERE md5 = ?;`;
+                        parameters = [this._beatmap.total_length, this._beatmap.max_combo, this.beatmap_md5];
+                        SutekinaClient.modules["logging"].trace(query, {query, parameters});
+                        SutekinaClient.modules["mysql2"].connection.execute(query, parameters, (err) => {
+                            if(err) return reject(err);
+                            return resolve(this._beatmap);
+                        });
+                    }).catch(err => reject(err));
+                }
+            });
+        });
+    }
+
     /**
      * @param {Beatmap} beatmap - Accepts Beatmap class objects. 
      * @returns {Object} an Object with the fullcombo pp and full combo accuracy.
@@ -91,7 +125,7 @@ class Score {
 
         let total_objects = beatmap.nspinners + beatmap.nsliders + beatmap.ncircles;
         let hit_objects = this.hits_list.reduce((a, b) => a + b, 0);
-        return total_objects * 100 / hit_objects;
+        return hit_objects * 100 / total_objects;
     }
 }
 
@@ -101,35 +135,11 @@ const HitsInterface = {hits_300: Number, hits_100: Number, hits_50: Number, hits
  * @param {HitsInterface} hits_list - Accepts an object with hits_300, hits_100, hits_50 and hits_miss. 
  * @returns {Number} the accuracy as % number.
  */
- Score.getAccuracy = (hits_list) => {
+Score.getAccuracy = (hits_list) => {
     return ((hits_list.hits_300 * 300 + hits_list.hits_100 * 100 + hits_list.hits_50 * 50 + hits_list.hits_miss * 0)/((hits_list.hits_300 + hits_list.hits_100 + hits_list.hits_50 + hits_list.hits_miss) * 300) * 100);
 };
 
-/** 
- * @returns {Score} creates new Score and resolves it in a Promise. 
- */
-Score.getScore = ({user_id = 1, mods = "vn", mode = 0, sort = "play_time", ascending = false, index = 0}) => {
-    return new Promise((resolve, reject) => {
-        const parameters = [mode];
-        if(user_id) parameters.unshift(user_id);
-        let limit = 10;
-        let offset = Math.floor(index / limit);
-        index = index - (limit * offset);
-        let query = `SELECT id score_id, map_md5 beatmap_md5, score, pp, acc accuracy, max_combo, mods, n300 hits_300, n100 hits_100, n50 hits_50, nmiss hits_miss, grade, status, mode, play_time, time_elapsed, client_flags, userid user_id, perfect FROM osu.scores_${mods} WHERE${(user_id) ? " userid = ? AND " : " "}mode = ? ORDER BY ${sort} ${(ascending === true) ? "ASC" : "DESC"} LIMIT ${limit} OFFSET ${offset};`;
-        SutekinaClient.modules["logging"].trace(query, {query, parameters})
-        SutekinaClient.modules["mysql2"].connection.execute(query, parameters, (error, result) => {
-            if(error) reject(error);
-            if(!result || !result[index]) reject("NOT_FOUND");
-            if(result && result[index]) resolve(new Score(result[index]));
-        });
-    });
-};
-
 module.exports = Score;
-
-
-
-
 
 // score_id,
 // beatmap_md5,
@@ -159,22 +169,3 @@ module.exports = Score;
 // client_flags,
 // user_id,
 // perfect /whether its fullcombo
-
-
-
-// accuracy: calculated accuracy,
-// max_combo: highest reached combo,
-// completion: calculated completion in per cent,
-// time: score achieved date in %s time ago format,
-// grade: emoji of the grade,
-// mods: emoji(s) of the mod(s),
-// hits: {
-//     hits_300: "count300",
-//     hits_100: "count100",
-//     hits_50: "count50",
-//     hits_misses: "countmiss"
-// },
-// pp: {
-//     full_combo: either "" or "=> " + "1pp",
-//     standard: count of pp (calculated cause if you fail thats bruh)
-// }

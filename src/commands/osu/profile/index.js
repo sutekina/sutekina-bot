@@ -18,24 +18,23 @@ module.exports = {
 
             const embed = new client.modules["discord.js"].MessageEmbed()
                 .setColor(client.config.application.color)
-                .setTitle(`${user.name}'s profile.`)
-                .setURL(new URL("/u/" + user.id, client.config.domains.osu))
+                .setAuthor(`${user.name}'s profile.`, undefined, new URL("/u/" + user.id, client.config.domains.osu))
                 .setDescription(
-                    `**Rank**: #${user.global_rank} (#${user.country_rank}, ${(user.country !== "xx") ? `:flag_${user.country}:` : `:pirate_flag:`})\n` +
-                    `**PP**: ${user.pp}pp\n` +
-                    `**Accuracy**: ${user.accuracy.toFixed(2)}%\n`+ 
-                    `**Playcount**: ${user.playcount} (${user.playtimeAgo})`)
-                .setFooter(`mod: ${mod} // mode: ${mode}`)
+                    `**rank**: #${user.global_rank} (#${user.country_rank}, ${(user.country !== "xx") ? `:flag_${user.country}:` : `:pirate_flag:`})\n` +
+                    `**pp**: ${user.pp}pp\n` +
+                    `**acc**: *${user.accuracy.toFixed(2)}%*\n`+ 
+                    `**playcount**: ${user.playcount} (\`${user.playtimeAgo}\`)`)
+                .setFooter(`${mod}/${mode} // (${client.modules["time"].clock(client.eventTimer)}ms/${client.ws.ping}ms)`)
                 .setThumbnail(new URL(user.id, client.config.domains.avatar));
 
             message.channel.send(embed);
         } catch(err) {
             if(!new RegExp(/NOT_FOUND|INVALID_MODE/).test(err)) {
-                message.channel.send("There was an issue trying to retrieve recent plays.");
+                message.channel.send("There was an issue trying to retrieve this user's profile, please report this on our github or report it to an administrator.");
                 return client.emit("error", err);
             };
 
-            message.channel.send(`\`\`${username.replace("`", "")}\`\` couldn't be found. ${err}`);
+            message.channel.send(`\`\`${username.replace("`", "")}\`\` couldn't be found. CODE: \`${err}\`.`);
         }
     }
 }

@@ -1,7 +1,7 @@
 module.exports = {
     bitwiseEmojis: {
-        0: "<:None:612400808289501212> ",           //no mod
-        1: "<:NoFail:612400808209940491> ",         //no fail
+        0: "<:None:612400808289501212>",           //no mod
+        1: "<:NoFail:612400808209940491>",         //no fail
         2: "<:Easy:612400807991705621>",            //easy
         4: "<:TouchDevice:612400808302215215>",     //touch device
         8: "<:Hidden:612400808377712650>",          //hidden

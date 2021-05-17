@@ -2,6 +2,6 @@ module.exports = {
     name: "error",
     once: false,
     execute: (error, client) => {
-        client.modules["logging"].error(error.message, error);
+        client.modules["logging"].error((error.message) ? error.message : error, error);
     }
 }

@@ -9,7 +9,7 @@ module.exports = {
             .setColor(client.config.application.color)
             .setTitle(`${client.config.application.name} commands`)
             .setDescription(`prefix: \`${client.config.application.prefix}\`, parameter prefix: \` -\``)
-            .setFooter(`${client.config.application.name}@${client.config.application.version}`, `https://cdn.discordapp.com/avatars/${client.user.id}/${client.user.avatar}`);
+            .setFooter(`${client.config.application.name}@${client.config.application.version} // (${client.modules["time"].clock(client.eventTimer)}ms/${client.ws.ping}ms)`, `https://cdn.discordapp.com/avatars/${client.user.id}/${client.user.avatar}`);
 
         if(message.args[1] && client.commands.filter(cmd => cmd.category === message.args[0] && cmd.name === message.args[1])) {
             let cmd = client.commands.filter(cmd => cmd.name === message.args[1]).first();
