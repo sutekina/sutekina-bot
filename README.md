@@ -9,5 +9,5 @@ sudo git clone https://github.com/sutekina/sutekina-bot.git
 
 npm install
 
-# after that make copy of ext/sample.config.js and configure it according to your needs.
+# after that make copy of ext/sample.config.json and configure it according to your needs.
 ```
