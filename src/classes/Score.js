@@ -108,17 +108,19 @@ const HitsInterface = {hits_300: Number, hits_100: Number, hits_50: Number, hits
 /** 
  * @returns {Score} creates new Score and resolves it in a Promise. 
  */
-Score.getScore = ({user_id = 1, mods = "vn", mode = 0, sort = "play_time", ascending = false}) => {
+Score.getScore = ({user_id = 1, mods = "vn", mode = 0, sort = "play_time", ascending = false, index = 0}) => {
     return new Promise((resolve, reject) => {
         const parameters = [mode];
         if(user_id) parameters.unshift(user_id);
-        
-        let query = `SELECT id score_id, map_md5 beatmap_md5, score, pp, acc accuracy, max_combo, mods, n300 hits_300, n100 hits_100, n50 hits_50, nmiss hits_miss, grade, status, mode, play_time, time_elapsed, client_flags, userid user_id, perfect FROM osu.scores_${mods} WHERE${(user_id) ? " userid = ? AND " : " "}mode = ? ORDER BY ${sort} ${(ascending === true) ? "ASC" : "DESC"};`;
+        let limit = 10;
+        let offset = Math.floor(index / limit);
+        index = index - (limit * offset);
+        let query = `SELECT id score_id, map_md5 beatmap_md5, score, pp, acc accuracy, max_combo, mods, n300 hits_300, n100 hits_100, n50 hits_50, nmiss hits_miss, grade, status, mode, play_time, time_elapsed, client_flags, userid user_id, perfect FROM osu.scores_${mods} WHERE${(user_id) ? " userid = ? AND " : " "}mode = ? ORDER BY ${sort} ${(ascending === true) ? "ASC" : "DESC"} LIMIT ${limit} OFFSET ${offset};`;
         SutekinaClient.modules["logging"].trace(query, {query, parameters})
         SutekinaClient.modules["mysql2"].connection.execute(query, parameters, (error, result) => {
             if(error) reject(error);
-            if(!result || !result[0]) reject("NOT_FOUND");
-            if(result[0]) resolve(new Score(result[0]));
+            if(!result || !result[index]) reject("NOT_FOUND");
+            if(result && result[index]) resolve(new Score(result[index]));
         });
     });
 };

@@ -3,6 +3,7 @@ module.exports = {
     category: "info",
     description: "Get the latency of the application.",
     usage: "maybe add later",
+    parameters: [],
     execute: (client, message) => {
         message.channel.send({embed: {
             "color": parseInt(client.config.application.color, 16),

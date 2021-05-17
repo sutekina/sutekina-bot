@@ -3,6 +3,7 @@ module.exports = {
     category: "osu",
     description: "Get recent osu play",
     usage: "maybe add later",
+    parameters: ["mod", "mode", "index"],
     execute: async (client, message) => {
         if(!message.args[0]) return message.channel.send("Please enter a user.");
         
@@ -10,25 +11,15 @@ module.exports = {
         let username = message.args.join(" ").toLowerCase().split(" -")[0];
         let mod = (enums.mods.gameMods.includes(message.params.mod)) ? message.params.mod : "vn";
         let mode = (enums.mode[message.params.mode]) ? message.params.mode : "std";
-        let index = 1;
+        let index = (parseInt(message.params.index) && typeof parseInt(message.params.index) === "number" && parseInt(message.params.index) >= 0) ? parseInt(message.params.index) : 0;
+        
         try {
-            let timers = {};
-
             const User = require("../../../classes/User");
             const Score = require("../../../classes/Score");
             const Beatmap = require("../../../classes/Beatmap");
-            timers.user = client.modules["time"].clock();
             const user = await new User(username, mod, mode);
-            timers.user = client.modules["time"].clock(timers.user);
-            timers.score = client.modules["time"].clock();
-            const score = await Score.getScore({user_id: user.id, ascending: false, mods: mod, mode: mode});
-            timers.score = client.modules["time"].clock(timers.score);
-            timers.beatmap = client.modules["time"].clock();
+            const score = await Score.getScore({user_id: user.id, ascending: false, mods: mod, mode: mode, index: index});
             const beatmap = await Beatmap.getBeatmap(score.beatmap_md5);
-            timers.beatmap = client.modules["time"].clock(timers.beatmap);
-            timers.file = client.modules["time"].clock();
-            await beatmap.file;
-            timers.file = client.modules["time"].clock(timers.file);
 
             const embed = new client.modules["discord.js"].MessageEmbed()
                 .setColor(client.config.application.color)
@@ -39,10 +30,9 @@ module.exports = {
                     `**Accuracy**: ${score.accuracy.toFixed(2)}% (${score.mod_list.map(m => enums.mods.bitwiseEmojis[m]).join("")}, ${enums.grades[score.grade]})\n` +
                     `**Completion**: ${(await score.getCompletion(beatmap)).toFixed(2)}% (x${score.max_combo}/${beatmap.max_combo})`
                 })
-                .setFooter(`player: ${user.name} // index: ${index} // mod: ${mod} // mode: ${mode}`, new URL(user.id, client.config.domains.avatar))
+                .setFooter(`player: ${user.name} // mod: ${mod} // mode: ${mode}`, new URL(user.id, client.config.domains.avatar))
                 .setThumbnail(new URL(`/thumb/${beatmap.beatmapset_id}.jpg`, client.config.domains.beatmap));
             message.channel.send(embed);
-            if(message.params.hasOwnProperty("debug")) module.exports.debug(client, message, timers);
         } catch(err) {
             if(!new RegExp(/NOT_FOUND|INVALID_MODE/).test(err)) {
                 message.channel.send("There was an issue trying to retrieve recent plays.");
@@ -51,20 +41,6 @@ module.exports = {
             
             message.channel.send(`\`\`${username.replace("`", "")}\`\` couldn't be found. ${err}`);
         }
-
-    },
-    debug: (client, message, timers) => {
-        let timeElapsed = client.modules["time"].clock(client.eventTimer);
-        message.channel.send(new client.modules["discord.js"].MessageEmbed()
-            .setColor(client.config.application.color)
-            .setTitle(`server-side time ${timeElapsed}ms, ws ping: ${client.ws.ping}ms, total est.: ${(parseFloat(timeElapsed) + client.ws.ping).toFixed(2)}ms.`)
-            .setDescription(
-                `user from mysql: \`${timers.user}\`ms\n` +
-                `recent score for user from mysql: \`${timers.score}\`ms\n` +
-                `beatmap from mysql, if not complete get map from cheesegull: \`${timers.beatmap}\`ms\n` +
-                `beatmap file from osu website: \`${timers.file}\`ms` 
-        ));
-        client.modules["logging"].debug(`Finished M@${message.id}, this command created a User, Score and Beatmap and then embedded it. Time took: ${timeElapsed}ms.`, timers);
     }
 }
 

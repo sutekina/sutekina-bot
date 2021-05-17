@@ -3,6 +3,7 @@ module.exports = {
     category: "osu",
     description: "Get your profile.",
     usage: "maybe add later",
+    parameters: ["mod", "mode"],
     execute: async (client, message) => {
         if(!message.args[0]) return message.channel.send("Please enter a user.");
         
@@ -33,7 +34,7 @@ module.exports = {
                 message.channel.send("There was an issue trying to retrieve recent plays.");
                 return client.emit("error", err);
             };
-            
+
             message.channel.send(`\`\`${username.replace("`", "")}\`\` couldn't be found. ${err}`);
         }
     }
