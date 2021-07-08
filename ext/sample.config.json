@@ -28,7 +28,8 @@
     },
     "authentication": {
         "discord": "DISCORD-TOKEN",
-        "osu": "OSU-API-TOKEN"
+        "osu": "OSU-API-TOKEN",
+        "tenor": "TENOR-API-TOKEN"
     },
     "debug": {
         "file_level": "trace",

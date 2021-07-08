@@ -5,7 +5,7 @@ module.exports = (url) => {
 
     return new Promise((resolve, reject) => {
         if(!url) reject(new Error("No url was provided."));
-
+        
         let options = {
             protocol: url.split(/\/\//)[0],
             host: url.split(/\/\//)[1].split(/:/)[0],
