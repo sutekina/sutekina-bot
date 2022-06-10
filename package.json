@@ -1,7 +1,7 @@
 {
   "name": "sutekina-bot",
   "version": "1.0.0",
-  "description": "sutekina.tk bot",
+  "description": "sutekina.xyz bot",
   "main": "src/index.js",
   "dependencies": {
     "abort-controller": "^3.0.0",

@@ -28,9 +28,21 @@ module.exports = class User {
             // you cant have any of these combinations.
             if(mod === "rx" && mode === "mania") return reject("INVALID_MODE");
             if(mod === "ap" && new RegExp(/mania|taiko|catch/).test(mod)) return reject("INVALID_MODE");
+            let modMode = {
+                vn_std: 0,
+                vn_taiko: 1,
+                vn_catch: 2,
+                vn_mania: 3,
             
-            let query = `SELECT u.id, u.name, u.country, u.priv, u.creation_time, s.playtime_${mod}_${mode} playtime, s.plays_${mod}_${mode} playcount, s.pp_${mod}_${mode} pp, s.acc_${mod}_${mode} accuracy, (SELECT COUNT(*)+1 FROM stats ss JOIN users uu USING(id) WHERE ss.pp_${mod}_${mode} > s.pp_${mod}_${mode} AND uu.priv & 1) AS global_rank, (SELECT COUNT(*)+1 FROM stats ss JOIN users uu USING(id) WHERE ss.pp_${mod}_${mode} > s.pp_${mod}_${mode} AND uu.country = u.country AND uu.priv >= 1) AS country_rank FROM stats s JOIN users u ON s.id = u.id WHERE safe_name = ? AND u.priv >= 3 ORDER BY global_rank;`;
-            let parameters = [name];
+                rx_std: 4,
+                rx_taiko: 5,
+                rx_catch: 6,
+            
+                ap_std: 7
+            }
+
+            let query = `SELECT u.id, u.name, u.country, u.priv, u.creation_time, s.playtime playtime, s.plays playcount, s.pp pp, s.acc accuracy, (SELECT COUNT(*)+1 FROM stats ss JOIN users uu USING(id) WHERE ss.pp > s.pp AND ss.mode = s.mode AND uu.priv & 1) AS global_rank, (SELECT COUNT(*)+1 FROM stats ss JOIN users uu USING(id) WHERE ss.pp > s.pp AND ss.mode = s.mode AND uu.country = u.country AND uu.priv >= 1) AS country_rank FROM stats s JOIN users u ON s.id = u.id WHERE s.mode = ? AND safe_name = ? AND u.priv >= 3 ORDER BY global_rank;`;
+            let parameters = [modMode[`${mod}_${mode}`], name];
             SutekinaClient.modules["logging"].trace(query, {query, parameters});
             SutekinaClient.modules["mysql2"].connection.execute(query, parameters, (error, result) => {
                 if(error) return reject(error);

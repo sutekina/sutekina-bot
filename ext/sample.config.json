@@ -23,8 +23,8 @@
         "database": "osu"
     },
     "domains": {
-        "osu": "https://sutekina.tk",
-        "avatar": "https://a.sutekina.tk"
+        "osu": "https://sutekina.xyz",
+        "avatar": "https://a.sutekina.xyz"
     },
     "authentication": {
         "discord": "DISCORD-TOKEN",
